@@ -15,11 +15,11 @@ if (time > inPoint) {
   // where to start animation – defaults to in point of layer, as time
   var animStart = inPoint;
   // loop duration, as time
-  var loopDurAsTime = framesToTime(loopDur);
+  var loopDurAsTime = framesToTime(loopDur)/2;
   // duration of hold, as time
   var holdDur = framesToTime(effect("Hold Duration")("Slider").value);
   // duration of fade, as time
-  var fadeDur = framesToTime(loopDur) - holdDur;
+  var fadeDur = loopDurAsTime - holdDur;
 
   if (effect ("Max to Min")("Checkbox") == True) {
   descending = true;
