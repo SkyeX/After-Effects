@@ -1,81 +1,84 @@
-minVal = effect("Minimum Value")("Slider"); // minimum value of loop
-maxVal = effect("Maximum Value")("Slider"); // maximum value of loop
-fps = 1.0 / thisComp.frameDuration; // retains functionality at different framerates
-freq = effect("Loop Frequency")("Slider") / fps; // loop frequency
-holdDur = effect("Hold Duration")("Slider") / fps; // duration of hold
-fadeDur = ( freq - holdDur ); // duration of fade
-compDur = thisComp.duration * fps; // duration of comp in frames
-startTime = inPoint; // where to start animation – defaults to in point of layer
+// duration of comp, in frames
+var compDur = timeToFrames(thisComp.duration);
+// loop duration, in frames
+var loopDur = getNearestDivisor(compDur, effect("Loop Duration")("Slider").value);
 
-// test to see if frequency setting will loop seamlessly, otherwise adjusts it
-if ( compDur % ( freq * fps ) != 0) {
-    i = 0;
-    j = 0;
-    iTest = freq;
-    jTest = freq;
+// minimum value of loop
+var minVal = effect("Minimum Value")("Slider").value;
+// maximum value of loop
+var maxVal = effect("Maximum Value")("Slider").value;
 
-// checks distance upwards to a looping frequency
-    while ( compDur % ( iTest * fps ) != 0 ) {
-        iTest += 1 / fps;
-        i++;
-        if ( i > ( iTest * fps ) ) {
-            break;
-        }
-    }
+// main function
+if (time > inPoint) {
+  // whether we're looping up or down
+  var descending = true;
+  // where to start animation – defaults to in point of layer, as time
+  var animStart = inPoint;
+  // loop duration, as time
+  var loopDurAsTime = framesToTime(loopDur);
+  // duration of hold, as time
+  var holdDur = framesToTime(effect("Hold Duration")("Slider").value);
+  // duration of fade, as time
+  var fadeDur = framesToTime(loopDur) - holdDur;
 
-// checks distance downwards to a looping frequency
-    while ( compDur % ( jTest * fps ) != 0 ) {
-        jTest -= 1 / fps;
-        j++;
-        if ( j > ( jTest * fps ) ) {
-            break;
-        }
-    }
+  if (effect ("Max to Min")("Checkbox") == True) {
+  descending = true;
+  } else {
+  desdending = false;
+  }
+  
+  while (time > (animStart + loopDurAsTime)) {
+    animStart += loopDurAsTime;
+    descending = !descending;
+  }
 
-// uses the shorter distance to adjust to looping frequency
-    if ( i <= j ) {
-        while ( compDur % ( freq * fps ) != 0 ) {
-            freq += 1 / fps;
-        }
-    } else {
-        while ( compDur % ( freq * fps ) != 0 ) {
-            freq -= 1 / fps;
-        }
-    }
+  if (effect ("Hold Follows Animation")("Checkbox") == true) {
+    holdDur *= -1;
+  }
 
-// main function, creates animation in/out, flipping n on each cycle to switch between them
-    if ( time < startTime ) {
-        maxVal;
-    } else {
-        n = 0;
-        animStart = startTime;
-        animDur = freq;
-        do {
-            timeTest = ( animStart + animDur ) < time;
-                if ( timeTest == true ) {
-                    animStart += animDur;
-                    n ^= 1;
-                }
-            } while ( timeTest == true );
-    linear ( time - animStart + holdDur, animDur - fadeDur, animDur, n == 0 ? maxVal : minVal, n == 0 ? minVal : maxVal );
-    }
-
+  linear(time - animStart + holdDur, loopDurAsTime - fadeDur, loopDurAsTime, descending ? maxVal : minVal, descending ? minVal : maxVal);
 } else {
+  maxVal;
+}
 
-// runs main function without adjusting frequency
-    if ( time < startTime ) {
-        maxVal;
+
+/**
+ * Gets nearest divisor of a number, from the starting divisor
+ * If equidistant, gets nearest higher.
+ * 
+ * Limits to 10 loops for performance.
+ *
+ * @param {Number} number     Number to divide
+ * @param {Number} initialDiv Initial divisor
+ * @returns {Number}          Nearest divisor
+ */
+function getNearestDivisor(number, initialDiv) {
+  var divisor = initialDiv;
+  var divisorUp = divisor;
+  var divisorDn = divisor;
+
+  // Get nearest divisor
+  var maxLoops = 10;
+  var count = 0;
+  while (number % divisor > 0) {
+    count++;
+    divisorUp++;
+    divisorDn--;
+
+    if (effect("Increase if Equidistant")("Checkbox") == true) {
+      a = divisorUp;
+      b = divisorDn;
     } else {
-        n = 0;
-        animStart = startTime;
-        animDur = freq;
-        do {
-            timeTest = ( animStart + animDur ) < time;
-                if ( timeTest == true ) {
-                    animStart += animDur;
-                    n ^= 1;
-                }
-            } while ( timeTest == true );
-    linear ( time - animStart + holdDur, animDur - fadeDur, animDur, n == 0 ? maxVal : minVal, n == 0 ? minVal : maxVal );
+      a = divisorDn;
+      b = divisorUp;
     }
+
+    if (number % a === 0) divisor = a;
+    else if (number % b === 0) divisor = b;
+
+    if (count >= maxLoops)
+      break;
+  }
+
+  return divisor;
 }
