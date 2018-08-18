@@ -1,7 +1,7 @@
 // duration of comp, in frames
 var compDur = timeToFrames(thisComp.duration);
 // loop duration, in frames
-var loopDur = getNearestDivisor(compDur, effect("Loop Duration")("Slider").value);
+var loopDur = getNearestDivisor(compDur, effect("Loop Duration")("Slider").value, effect("Increase if Equidistant")("Checkbox").value);
 
 // minimum value of loop
 var minVal = effect("Minimum Value")("Slider").value;
@@ -11,28 +11,22 @@ var maxVal = effect("Maximum Value")("Slider").value;
 // main function
 if (time > inPoint) {
   // whether we're looping up or down
-  var descending = true;
-  // where to start animation – defaults to in point of layer, as time
+  var descending = effect("Max to Min")("Checkbox").value;
+  // where to start animation â€“ defaults to in point of layer, as time
   var animStart = inPoint;
   // loop duration, as time
-  var loopDurAsTime = framesToTime(loopDur)/2;
+  var loopDurAsTime = framesToTime(loopDur) / 2;
   // duration of hold, as time
   var holdDur = framesToTime(effect("Hold Duration")("Slider").value);
   // duration of fade, as time
   var fadeDur = loopDurAsTime - holdDur;
 
-  if (effect ("Max to Min")("Checkbox") == True) {
-  descending = true;
-  } else {
-  desdending = false;
-  }
-  
   while (time > (animStart + loopDurAsTime)) {
     animStart += loopDurAsTime;
     descending = !descending;
   }
 
-  if (effect ("Hold Follows Animation")("Checkbox") == true) {
+  if (effect("Hold Follows Animation")("Checkbox").value === true) {
     holdDur *= -1;
   }
 
@@ -45,17 +39,23 @@ if (time > inPoint) {
 /**
  * Gets nearest divisor of a number, from the starting divisor
  * If equidistant, gets nearest higher.
- * 
+ *
  * Limits to 10 loops for performance.
  *
- * @param {Number} number     Number to divide
- * @param {Number} initialDiv Initial divisor
- * @returns {Number}          Nearest divisor
+ * @param {Number} number          Number to divide
+ * @param {Number} initialDiv      Initial divisor
+ * @param {Boolean} [roundUp=true] Optional, Whether to round up or down on equidistant values. Defaults to true.
+ * @returns {Number}               Nearest divisor
  */
-function getNearestDivisor(number, initialDiv) {
+function getNearestDivisor(number, initialDiv, roundUp) {
+  // Set roundUp to default to true, if it's not passed in.
+  // Otherwise, use whatever value was given
+  roundUp = typeof roundUp === "undefined" ? true : roundUp;
   var divisor = initialDiv;
   var divisorUp = divisor;
+  var a = divisorUp;
   var divisorDn = divisor;
+  var b = divisorDn;
 
   // Get nearest divisor
   var maxLoops = 10;
@@ -65,10 +65,7 @@ function getNearestDivisor(number, initialDiv) {
     divisorUp++;
     divisorDn--;
 
-    if (effect("Increase if Equidistant")("Checkbox") == true) {
-      a = divisorUp;
-      b = divisorDn;
-    } else {
+    if (!roundUp) {
       a = divisorDn;
       b = divisorUp;
     }
@@ -76,8 +73,7 @@ function getNearestDivisor(number, initialDiv) {
     if (number % a === 0) divisor = a;
     else if (number % b === 0) divisor = b;
 
-    if (count >= maxLoops)
-      break;
+    if (count >= maxLoops) break;
   }
 
   return divisor;
